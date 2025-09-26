@@ -13,6 +13,7 @@ qt_add_executable(TimerApp
     reminderdialog.h
     reminderdialog.cpp
     timesetdialog.h timesetdialog.cpp
+    intervalsetdialog.h intervalsetdialog.cpp
 
 )
 

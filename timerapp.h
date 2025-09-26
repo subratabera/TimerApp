@@ -10,6 +10,7 @@
 
 class ReminderDialog;
 class TimeSetDialog;
+class IntervalSetDialog;
 
 class TimerApp : public QMainWindow
 {
@@ -28,29 +29,35 @@ private slots:
     void showMainWindow();
     void updateCountdown();
     void showTimeSetDialog();
+    void showIntervalSetDialog();  // New slot for setting interval
 
 private:
     void setupTrayIcon();
     void setupTimers();
-    void startNextHourTimer();
+    void startNextAlertTimer();  // Renamed from startNextHourTimer
     void startCountdown();
     void updateNextAlertLabel();
     void closeEvent(QCloseEvent *event) override;
 
     QSystemTrayIcon *trayIcon;
-    QTimer *hourlyTimer;
+    QTimer *alertTimer;  // Renamed from hourlyTimer
     QTimer *snoozeTimer;
     QTimer *countdownTimer;
     ReminderDialog *reminderDialog;
     TimeSetDialog *timeSetDialog;
+    IntervalSetDialog *intervalSetDialog;  // New dialog pointer
     QTime nextAlertTime;
-    int customMinute;  // New: Store the custom minute (-1 means not set)
+    int customMinute;  // Store the custom minute (-1 means not set)
+    int customInterval;  // New: Store the custom interval in minutes
 
     // UI elements
     QLabel *statusLabel;
     QLabel *nextAlertLabel;
     QLabel *countdownLabel;
     QPushButton *setTimeButton;
+    QPushButton *setIntervalButton;  // New button for setting interval
+    QPushButton *minimizeButton;
+    QPushButton *quitButton;
 };
 
 #endif // TIMERAPP_H

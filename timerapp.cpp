@@ -1,6 +1,7 @@
 #include "timerapp.h"
 #include "reminderdialog.h"
 #include "timesetdialog.h"
+#include "intervalsetdialog.h"
 #include <QMenu>
 #include <QDateTime>
 #include <QMessageBox>
@@ -17,12 +18,14 @@
 TimerApp::TimerApp(QWidget *parent)
     : QMainWindow(parent)
     , trayIcon(new QSystemTrayIcon(this))
-    , hourlyTimer(new QTimer(this))
+    , alertTimer(new QTimer(this))
     , snoozeTimer(new QTimer(this))
     , countdownTimer(new QTimer(this))
     , reminderDialog(nullptr)
     , timeSetDialog(nullptr)
+    , intervalSetDialog(nullptr)
     , customMinute(-1)
+    , customInterval(60)  // Default to 60 minutes (1 hour)
 {
     setWindowTitle("Hourly Timer");
 
@@ -44,14 +47,14 @@ TimerApp::TimerApp(QWidget *parent)
 
     nextAlertLabel = new QLabel("Next alert: Calculating...", this);
     nextAlertLabel->setAlignment(Qt::AlignCenter);
-    nextAlertLabel->setStyleSheet("font-size: 24px; font-weight: bold;");
+    nextAlertLabel->setStyleSheet("font-size: 18px; font-weight: bold;");
 
     // Add countdown label with larger, bold font
     countdownLabel = new QLabel("Time remaining: --:--:--", this);
     countdownLabel->setAlignment(Qt::AlignCenter);
-    countdownLabel->setStyleSheet("font-size: 20px; font-weight: bold;");
+    countdownLabel->setStyleSheet("font-size: 24px; font-weight: bold;");
 
-    // Create horizontal layout for all buttons
+    // Create horizontal layout for buttons
     QHBoxLayout *buttonLayout = new QHBoxLayout();
     buttonLayout->setSpacing(10);
 
@@ -59,15 +62,23 @@ TimerApp::TimerApp(QWidget *parent)
     setTimeButton = new QPushButton("Set Alert Time", this);
     setTimeButton->setStyleSheet("font-size: 14px; font-weight: bold;");
     setTimeButton->setMinimumHeight(40);
-    setTimeButton->setMinimumWidth(120);  // Set minimum width
+    setTimeButton->setMinimumWidth(120);
     setTimeButton->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     connect(setTimeButton, &QPushButton::clicked, this, &TimerApp::showTimeSetDialog);
 
+    // Add set interval button
+    setIntervalButton = new QPushButton("Set Interval", this);
+    setIntervalButton->setStyleSheet("font-size: 14px; font-weight: bold;");
+    setIntervalButton->setMinimumHeight(40);
+    setIntervalButton->setMinimumWidth(120);
+    setIntervalButton->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    connect(setIntervalButton, &QPushButton::clicked, this, &TimerApp::showIntervalSetDialog);
+
     // Add minimize button
-    QPushButton *minimizeButton = new QPushButton("Minimize", this);
+    minimizeButton = new QPushButton("Minimize", this);
     minimizeButton->setStyleSheet("font-size: 14px; font-weight: bold;");
     minimizeButton->setMinimumHeight(40);
-    minimizeButton->setMinimumWidth(120);  // Set minimum width
+    minimizeButton->setMinimumWidth(120);
     minimizeButton->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     connect(minimizeButton, &QPushButton::clicked, this, [this]() {
         hide();
@@ -79,20 +90,22 @@ TimerApp::TimerApp(QWidget *parent)
     });
 
     // Add quit button
-    QPushButton *quitButton = new QPushButton("Quit", this);
+    quitButton = new QPushButton("Quit", this);
     quitButton->setStyleSheet("font-size: 14px; font-weight: bold;");
     quitButton->setMinimumHeight(40);
-    quitButton->setMinimumWidth(120);  // Set minimum width
+    quitButton->setMinimumWidth(120);
     quitButton->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     connect(quitButton, &QPushButton::clicked, this, &TimerApp::quitApp);
 
     // Add all buttons to horizontal layout
     buttonLayout->addWidget(setTimeButton);
+    buttonLayout->addWidget(setIntervalButton);
     buttonLayout->addWidget(minimizeButton);
     buttonLayout->addWidget(quitButton);
 
     // Set stretch factors to make buttons equal width
     buttonLayout->setStretchFactor(setTimeButton, 1);
+    buttonLayout->setStretchFactor(setIntervalButton, 1);
     buttonLayout->setStretchFactor(minimizeButton, 1);
     buttonLayout->setStretchFactor(quitButton, 1);
 
@@ -111,8 +124,8 @@ TimerApp::TimerApp(QWidget *parent)
     setupTrayIcon();
     setupTimers();
 
-    // Set initial alert time to next full hour
-    startNextHourTimer();
+    // Set initial alert time
+    startNextAlertTimer();
 
     // Update the UI
     updateNextAlertLabel();
@@ -131,13 +144,13 @@ TimerApp::TimerApp(QWidget *parent)
     adjustSize();
 
     // Set minimum width to accommodate all buttons
-    setMinimumWidth(450);
+    setMinimumWidth(550);  // Increased width for four buttons
 
     // Set minimum height to prevent shrinking too much
     setMinimumHeight(size().height());
 
     // Set maximum size to prevent expanding unnecessarily
-    setMaximumSize(450, size().height());
+    setMaximumSize(550, size().height());
 }
 
 TimerApp::~TimerApp()
@@ -150,6 +163,11 @@ TimerApp::~TimerApp()
     if (timeSetDialog) {
         delete timeSetDialog;
         timeSetDialog = nullptr;
+    }
+
+    if (intervalSetDialog) {
+        delete intervalSetDialog;
+        intervalSetDialog = nullptr;
     }
 }
 
@@ -204,8 +222,8 @@ void TimerApp::setupTrayIcon()
 
 void TimerApp::setupTimers()
 {
-    hourlyTimer->setSingleShot(true);
-    connect(hourlyTimer, &QTimer::timeout, this, &TimerApp::showReminder);
+    alertTimer->setSingleShot(true);
+    connect(alertTimer, &QTimer::timeout, this, &TimerApp::showReminder);
 
     snoozeTimer->setSingleShot(true);
     connect(snoozeTimer, &QTimer::timeout, this, &TimerApp::showReminder);
@@ -255,7 +273,7 @@ void TimerApp::updateNextAlertLabel()
     nextAlertLabel->setText("Next alert: " + nextAlertTime.toString("hh:mm"));
 }
 
-void TimerApp::startNextHourTimer()
+void TimerApp::startNextAlertTimer()
 {
     QDateTime now = QDateTime::currentDateTime();
     QTime nowTime = now.time();
@@ -272,8 +290,12 @@ void TimerApp::startNextHourTimer()
             targetTime = QTime(nowTime.hour() + 1, customMinute);
         }
     } else {
-        // Default behavior: next full hour
-        targetTime = nowTime.addSecs(3600 - (nowTime.minute() * 60 + nowTime.second()));
+        // Default behavior: next full interval
+        int minutesToAdd = customInterval - (nowTime.minute() % customInterval);
+        if (minutesToAdd == customInterval) {
+            minutesToAdd = 0; // We're exactly at an interval boundary
+        }
+        targetTime = nowTime.addSecs(minutesToAdd * 60 - nowTime.second());
     }
 
     // Calculate milliseconds until the target time
@@ -283,7 +305,7 @@ void TimerApp::startNextHourTimer()
     }
 
     qint64 msecsToTarget = now.msecsTo(targetDateTime);
-    hourlyTimer->start(msecsToTarget);
+    alertTimer->start(msecsToTarget);
 
     // Update next alert time
     nextAlertTime = targetTime;
@@ -306,13 +328,13 @@ void TimerApp::showReminder()
 
     // Show system notification
     if (trayIcon && trayIcon->isVisible()) {
-        trayIcon->showMessage("Hourly Reminder",
+        trayIcon->showMessage("Timer Alert",
                               "Time: " + QDateTime::currentDateTime().toString("hh:mm"),
                               QSystemTrayIcon::Warning, 5000);
     }
 
-    // Start timer for next alert (using the same custom minute if set)
-    startNextHourTimer();
+    // Start timer for next alert
+    startNextAlertTimer();
 }
 
 void TimerApp::snoozeReminder()
@@ -345,8 +367,8 @@ void TimerApp::dismissReminder()
         reminderDialog->hide();
     }
 
-    // Start timer for next alert (using the same custom minute if set)
-    startNextHourTimer();
+    // Start timer for next alert
+    startNextAlertTimer();
 
     // Show notification
     if (trayIcon && trayIcon->isVisible()) {
@@ -420,8 +442,8 @@ void TimerApp::showTimeSetDialog()
         }
 
         qint64 msecsToTarget = now.msecsTo(targetDateTime);
-        hourlyTimer->stop();
-        hourlyTimer->start(msecsToTarget);
+        alertTimer->stop();
+        alertTimer->start(msecsToTarget);
 
         // Update next alert time
         nextAlertTime = targetTime;
@@ -433,6 +455,55 @@ void TimerApp::showTimeSetDialog()
         if (trayIcon && trayIcon->isVisible()) {
             trayIcon->showMessage("Alert Time Updated",
                                   "Next alert at " + nextAlertTime.toString("hh:mm"),
+                                  QSystemTrayIcon::Information, 1000);
+        }
+    }
+}
+
+void TimerApp::showIntervalSetDialog()
+{
+    if (!intervalSetDialog) {
+        intervalSetDialog = new IntervalSetDialog(customInterval, this);
+    } else {
+        intervalSetDialog->setValue(customInterval);
+    }
+
+    if (intervalSetDialog->exec() == QDialog::Accepted) {
+        // User clicked OK, update the custom interval
+        customInterval = intervalSetDialog->selectedInterval();
+
+        // Reset custom minute since we're now using interval-based alerts
+        customMinute = -1;
+
+        // Restart the alert timer with the new interval
+        startNextAlertTimer();
+
+        // Update status label to show the new interval
+        if (customInterval == 60) {
+            statusLabel->setText("Timer is running (1 hour interval)");
+        } else {
+            statusLabel->setText(QString("Timer is running (%1 minute interval)").arg(customInterval));
+        }
+
+        // Show notification
+        if (trayIcon && trayIcon->isVisible()) {
+            QString intervalText;
+            if (customInterval == 60) {
+                intervalText = "1 hour";
+            } else if (customInterval < 60) {
+                intervalText = QString("%1 minutes").arg(customInterval);
+            } else {
+                int hours = customInterval / 60;
+                int minutes = customInterval % 60;
+                if (minutes == 0) {
+                    intervalText = QString("%1 hours").arg(hours);
+                } else {
+                    intervalText = QString("%1 hours %2 minutes").arg(hours).arg(minutes);
+                }
+            }
+
+            trayIcon->showMessage("Interval Updated",
+                                  "Alert interval set to " + intervalText,
                                   QSystemTrayIcon::Information, 3000);
         }
     }
