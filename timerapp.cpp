@@ -12,6 +12,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QHBoxLayout>
+#include <QLineEdit>
 #include <QSizePolicy>
 #include <QStyle>
 
@@ -40,19 +41,20 @@ TimerApp::TimerApp(QWidget *parent)
     mainLayout->setContentsMargins(20, 20, 20, 20);
     mainLayout->setSpacing(15);
 
-    // Add UI elements with larger, bold fonts
-    statusLabel = new QLabel("Timer is running", this);
-    statusLabel->setAlignment(Qt::AlignCenter);
-    statusLabel->setStyleSheet("font-size: 20px; font-weight: bold;");
+    // Add editable status field with larger, bold font
+    statusEdit = new QLineEdit("Timer is running", this);
+    statusEdit->setAlignment(Qt::AlignCenter);
+    statusEdit->setStyleSheet("font-size: 20px; font-weight: bold;");
+    connect(statusEdit, &QLineEdit::textChanged, this, &TimerApp::onStatusTextChanged);
 
     nextAlertLabel = new QLabel("Next alert: Calculating...", this);
     nextAlertLabel->setAlignment(Qt::AlignCenter);
-    nextAlertLabel->setStyleSheet("font-size: 32px; font-weight: bold;");
+    nextAlertLabel->setStyleSheet("font-size: 18px; font-weight: bold;");
 
     // Add countdown label with larger, bold font
     countdownLabel = new QLabel("Time remaining: --:--:--", this);
     countdownLabel->setAlignment(Qt::AlignCenter);
-    countdownLabel->setStyleSheet("font-size: 20px; font-weight: bold;");
+    countdownLabel->setStyleSheet("font-size: 24px; font-weight: bold;");
 
     // Create first horizontal layout for setting buttons
     QHBoxLayout *settingButtonsLayout = new QHBoxLayout();
@@ -118,7 +120,7 @@ TimerApp::TimerApp(QWidget *parent)
     actionButtonsLayout->setStretchFactor(quitButton, 1);
 
     // Add all widgets to main layout
-    mainLayout->addWidget(statusLabel);
+    mainLayout->addWidget(statusEdit);
     mainLayout->addWidget(nextAlertLabel);
     mainLayout->addWidget(countdownLabel);
     mainLayout->addLayout(settingButtonsLayout);
@@ -184,9 +186,7 @@ void TimerApp::setupTrayIcon()
 {
     // Check if system tray is available
     if (!QSystemTrayIcon::isSystemTrayAvailable()) {
-        if (statusLabel) {
-            statusLabel->setText("Timer is running (System tray not available)");
-        }
+        statusEdit->setText("Timer is running (System tray not available)");
         return;
     }
 
@@ -202,7 +202,7 @@ void TimerApp::setupTrayIcon()
     trayMenu->addAction(showAction);
     trayMenu->addAction(quitAction);
 
-    // Set up tray icon with a standard system icon
+    // Set up tray icon with a standard icon
     trayIcon->setContextMenu(trayMenu);
     trayIcon->setIcon(style()->standardIcon(QStyle::SP_ComputerIcon));
     trayIcon->setToolTip("Hourly Timer");
@@ -212,9 +212,7 @@ void TimerApp::setupTrayIcon()
 
     // Verify the icon is visible
     if (!trayIcon->isVisible()) {
-        if (statusLabel) {
-            statusLabel->setText("Timer is running (Failed to show tray icon)");
-        }
+        statusEdit->setText("Timer is running (Failed to show tray icon)");
     }
 
     connect(trayIcon, &QSystemTrayIcon::activated,
@@ -335,9 +333,14 @@ void TimerApp::showReminder()
     reminderDialog->raise();
     reminderDialog->activateWindow();
 
-    // Show system notification
+    // Show system notification with custom status text if available
+    QString message = statusEdit->text();
+    if (message.isEmpty()) {
+        message = "Timer Alert";
+    }
+
     if (trayIcon && trayIcon->isVisible()) {
-        trayIcon->showMessage("Timer Alert",
+        trayIcon->showMessage(message,
                               "Time: " + QDateTime::currentDateTime().toString("hh:mm"),
                               QSystemTrayIcon::Warning, 5000);
     }
@@ -364,7 +367,12 @@ void TimerApp::snoozeReminder()
 
     // Show notification
     if (trayIcon && trayIcon->isVisible()) {
-        trayIcon->showMessage("Reminder Snoozed",
+        QString message = statusEdit->text();
+        if (message.isEmpty()) {
+            message = "Reminder Snoozed";
+        }
+
+        trayIcon->showMessage(message,
                               "Next alert in 5 minutes",
                               QSystemTrayIcon::Information, 3000);
     }
@@ -381,7 +389,12 @@ void TimerApp::dismissReminder()
 
     // Show notification
     if (trayIcon && trayIcon->isVisible()) {
-        trayIcon->showMessage("Reminder Dismissed",
+        QString message = statusEdit->text();
+        if (message.isEmpty()) {
+            message = "Reminder Dismissed";
+        }
+
+        trayIcon->showMessage(message,
                               "Next alert at " + nextAlertTime.toString("hh:mm"),
                               QSystemTrayIcon::Information, 3000);
     }
@@ -416,6 +429,12 @@ void TimerApp::closeEvent(QCloseEvent *event)
 {
     hide();
     event->ignore();
+}
+
+void TimerApp::onStatusTextChanged()
+{
+    // This slot is called when the user edits the status text
+    // We don't need to do anything special here, but we could add validation if needed
 }
 
 void TimerApp::showTimeSetDialog()
@@ -462,7 +481,12 @@ void TimerApp::showTimeSetDialog()
 
         // Show notification
         if (trayIcon && trayIcon->isVisible()) {
-            trayIcon->showMessage("Alert Time Updated",
+            QString message = statusEdit->text();
+            if (message.isEmpty()) {
+                message = "Alert Time Updated";
+            }
+
+            trayIcon->showMessage(message,
                                   "Next alert at " + nextAlertTime.toString("hh:mm"),
                                   QSystemTrayIcon::Information, 3000);
         }
@@ -489,9 +513,9 @@ void TimerApp::showIntervalSetDialog()
 
         // Update status label to show the new interval
         if (customInterval == 60) {
-            statusLabel->setText("Timer is running (1 hour interval)");
+            statusEdit->setText("Timer is running (1 hour interval)");
         } else {
-            statusLabel->setText(QString("Timer is running (%1 minute interval)").arg(customInterval));
+            statusEdit->setText(QString("Timer is running (%1 minute interval)").arg(customInterval));
         }
 
         // Show notification
@@ -511,7 +535,12 @@ void TimerApp::showIntervalSetDialog()
                 }
             }
 
-            trayIcon->showMessage("Interval Updated",
+            QString message = statusEdit->text();
+            if (message.isEmpty()) {
+                message = "Interval Updated";
+            }
+
+            trayIcon->showMessage(message,
                                   "Alert interval set to " + intervalText,
                                   QSystemTrayIcon::Information, 3000);
         }

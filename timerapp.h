@@ -5,6 +5,7 @@
 #include <QSystemTrayIcon>
 #include <QTimer>
 #include <QTime>
+#include <QLineEdit>
 #include <QLabel>
 #include <QPushButton>
 
@@ -29,33 +30,34 @@ private slots:
     void showMainWindow();
     void updateCountdown();
     void showTimeSetDialog();
-    void showIntervalSetDialog();  // New slot for setting interval
+    void showIntervalSetDialog();
+    void onStatusTextChanged();  // New slot for status text changes
 
 private:
     void setupTrayIcon();
     void setupTimers();
-    void startNextAlertTimer();  // Renamed from startNextHourTimer
+    void startNextAlertTimer();
     void startCountdown();
     void updateNextAlertLabel();
     void closeEvent(QCloseEvent *event) override;
 
     QSystemTrayIcon *trayIcon;
-    QTimer *alertTimer;  // Renamed from hourlyTimer
+    QTimer *alertTimer;
     QTimer *snoozeTimer;
     QTimer *countdownTimer;
     ReminderDialog *reminderDialog;
     TimeSetDialog *timeSetDialog;
-    IntervalSetDialog *intervalSetDialog;  // New dialog pointer
+    IntervalSetDialog *intervalSetDialog;
     QTime nextAlertTime;
-    int customMinute;  // Store the custom minute (-1 means not set)
-    int customInterval;  // New: Store the custom interval in minutes
+    int customMinute;
+    int customInterval;
 
     // UI elements
-    QLabel *statusLabel;
+    QLineEdit *statusEdit;  // Changed from QLabel to QLineEdit
     QLabel *nextAlertLabel;
     QLabel *countdownLabel;
     QPushButton *setTimeButton;
-    QPushButton *setIntervalButton;  // New button for setting interval
+    QPushButton *setIntervalButton;
     QPushButton *minimizeButton;
     QPushButton *quitButton;
 };
