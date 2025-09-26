@@ -10,6 +10,7 @@
 #include <QWidget>
 #include <QLabel>
 #include <QPushButton>
+#include <QHBoxLayout>
 #include <QStyle>
 
 TimerApp::TimerApp(QWidget *parent)
@@ -20,7 +21,7 @@ TimerApp::TimerApp(QWidget *parent)
     , countdownTimer(new QTimer(this))
     , reminderDialog(nullptr)
     , timeSetDialog(nullptr)
-    , customMinute(-1)  // Initialize to -1 (not set)
+    , customMinute(-1)
 {
     setWindowTitle("Hourly Timer");
 
@@ -29,11 +30,11 @@ TimerApp::TimerApp(QWidget *parent)
 
     // Create central widget and layout
     QWidget *centralWidget = new QWidget(this);
-    QVBoxLayout *layout = new QVBoxLayout(centralWidget);
+    QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget);
 
     // Set layout margins and spacing
-    layout->setContentsMargins(20, 20, 20, 20);
-    layout->setSpacing(15);
+    mainLayout->setContentsMargins(20, 20, 20, 20);
+    mainLayout->setSpacing(15);
 
     // Add UI elements with larger, bold fonts
     statusLabel = new QLabel("Timer is running", this);
@@ -42,7 +43,7 @@ TimerApp::TimerApp(QWidget *parent)
 
     nextAlertLabel = new QLabel("Next alert: Calculating...", this);
     nextAlertLabel->setAlignment(Qt::AlignCenter);
-    nextAlertLabel->setStyleSheet("font-size: 20px; font-weight: bold;");
+    nextAlertLabel->setStyleSheet("font-size: 24px; font-weight: bold;");
 
     // Add countdown label with larger, bold font
     countdownLabel = new QLabel("Time remaining: --:--:--", this);
@@ -51,14 +52,18 @@ TimerApp::TimerApp(QWidget *parent)
 
     // Add set time button
     setTimeButton = new QPushButton("Set Alert Time", this);
-    setTimeButton->setStyleSheet("font-size: 16px; font-weight: bold;");
-    setTimeButton->setMinimumHeight(50);
+    setTimeButton->setStyleSheet("font-size: 14px; font-weight: bold;");
+    setTimeButton->setMinimumHeight(40);
     connect(setTimeButton, &QPushButton::clicked, this, &TimerApp::showTimeSetDialog);
 
+    // Create horizontal layout for bottom buttons
+    QHBoxLayout *buttonLayout = new QHBoxLayout();
+    buttonLayout->setSpacing(10);
+
     // Add minimize button
-    QPushButton *minimizeButton = new QPushButton("Minimize to System Tray", this);
-    minimizeButton->setStyleSheet("font-size: 16px; font-weight: bold;");
-    minimizeButton->setMinimumHeight(50);
+    QPushButton *minimizeButton = new QPushButton("Minimize", this);
+    minimizeButton->setStyleSheet("font-size: 14px; font-weight: bold;");
+    minimizeButton->setMinimumHeight(40);
     connect(minimizeButton, &QPushButton::clicked, this, [this]() {
         hide();
         if (trayIcon && trayIcon->isVisible()) {
@@ -68,15 +73,25 @@ TimerApp::TimerApp(QWidget *parent)
         }
     });
 
-    // Add widgets to layout
-    layout->addWidget(statusLabel);
-    layout->addWidget(nextAlertLabel);
-    layout->addWidget(countdownLabel);
-    layout->addWidget(setTimeButton);
-    layout->addWidget(minimizeButton);
+    // Add quit button
+    QPushButton *quitButton = new QPushButton("Quit", this);
+    quitButton->setStyleSheet("font-size: 14px; font-weight: bold;");
+    quitButton->setMinimumHeight(40);
+    connect(quitButton, &QPushButton::clicked, this, &TimerApp::quitApp);
+
+    // Add buttons to horizontal layout
+    buttonLayout->addWidget(minimizeButton);
+    buttonLayout->addWidget(quitButton);
+
+    // Add all widgets to main layout
+    mainLayout->addWidget(statusLabel);
+    mainLayout->addWidget(nextAlertLabel);
+    mainLayout->addWidget(countdownLabel);
+    mainLayout->addWidget(setTimeButton);
+    mainLayout->addLayout(buttonLayout);
 
     // Add stretch to push everything up
-    layout->addStretch();
+    mainLayout->addStretch();
 
     setCentralWidget(centralWidget);
 
