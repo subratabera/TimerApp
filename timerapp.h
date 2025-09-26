@@ -6,8 +6,10 @@
 #include <QTimer>
 #include <QTime>
 #include <QLabel>
+#include <QPushButton>
 
 class ReminderDialog;
+class TimeSetDialog;
 
 class TimerApp : public QMainWindow
 {
@@ -25,6 +27,7 @@ private slots:
     void quitApp();
     void showMainWindow();
     void updateCountdown();
+    void showTimeSetDialog();
 
 private:
     void setupTrayIcon();
@@ -39,12 +42,15 @@ private:
     QTimer *snoozeTimer;
     QTimer *countdownTimer;
     ReminderDialog *reminderDialog;
+    TimeSetDialog *timeSetDialog;
     QTime nextAlertTime;
+    int customMinute;  // New: Store the custom minute (-1 means not set)
 
     // UI elements
     QLabel *statusLabel;
     QLabel *nextAlertLabel;
     QLabel *countdownLabel;
+    QPushButton *setTimeButton;
 };
 
 #endif // TIMERAPP_H

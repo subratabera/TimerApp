@@ -1,5 +1,6 @@
 #include "timerapp.h"
 #include "reminderdialog.h"
+#include "timesetdialog.h"
 #include <QMenu>
 #include <QDateTime>
 #include <QMessageBox>
@@ -18,6 +19,8 @@ TimerApp::TimerApp(QWidget *parent)
     , snoozeTimer(new QTimer(this))
     , countdownTimer(new QTimer(this))
     , reminderDialog(nullptr)
+    , timeSetDialog(nullptr)
+    , customMinute(-1)  // Initialize to -1 (not set)
 {
     setWindowTitle("Hourly Timer");
 
@@ -35,18 +38,24 @@ TimerApp::TimerApp(QWidget *parent)
     // Add UI elements with larger, bold fonts
     statusLabel = new QLabel("Timer is running", this);
     statusLabel->setAlignment(Qt::AlignCenter);
-    statusLabel->setStyleSheet("font-size: 20px; font-weight: bold;");
+    statusLabel->setStyleSheet("font-size: 16px; font-weight: bold;");
 
     nextAlertLabel = new QLabel("Next alert: Calculating...", this);
     nextAlertLabel->setAlignment(Qt::AlignCenter);
-    nextAlertLabel->setStyleSheet("font-size: 18px; font-weight: bold;");
+    nextAlertLabel->setStyleSheet("font-size: 20px; font-weight: bold;");
 
     // Add countdown label with larger, bold font
     countdownLabel = new QLabel("Time remaining: --:--:--", this);
     countdownLabel->setAlignment(Qt::AlignCenter);
-    countdownLabel->setStyleSheet("font-size: 24px; font-weight: bold;");
+    countdownLabel->setStyleSheet("font-size: 16px; font-weight: bold;");
 
-    // Add minimize button with larger, bold font
+    // Add set time button
+    setTimeButton = new QPushButton("Set Alert Time", this);
+    setTimeButton->setStyleSheet("font-size: 16px; font-weight: bold;");
+    setTimeButton->setMinimumHeight(50);
+    connect(setTimeButton, &QPushButton::clicked, this, &TimerApp::showTimeSetDialog);
+
+    // Add minimize button
     QPushButton *minimizeButton = new QPushButton("Minimize to System Tray", this);
     minimizeButton->setStyleSheet("font-size: 16px; font-weight: bold;");
     minimizeButton->setMinimumHeight(50);
@@ -63,6 +72,7 @@ TimerApp::TimerApp(QWidget *parent)
     layout->addWidget(statusLabel);
     layout->addWidget(nextAlertLabel);
     layout->addWidget(countdownLabel);
+    layout->addWidget(setTimeButton);
     layout->addWidget(minimizeButton);
 
     // Add stretch to push everything up
@@ -75,15 +85,12 @@ TimerApp::TimerApp(QWidget *parent)
     setupTimers();
 
     // Set initial alert time to next full hour
-    QDateTime now = QDateTime::currentDateTime();
-    QTime nextHour = now.time().addSecs(3600 - (now.time().minute() * 60 + now.time().second()));
-    nextAlertTime = nextHour;
+    startNextHourTimer();
 
     // Update the UI
     updateNextAlertLabel();
 
     // Start the timers
-    startNextHourTimer();
     startCountdown();
 
     // Show initial message
@@ -108,6 +115,11 @@ TimerApp::~TimerApp()
     if (reminderDialog) {
         delete reminderDialog;
         reminderDialog = nullptr;
+    }
+
+    if (timeSetDialog) {
+        delete timeSetDialog;
+        timeSetDialog = nullptr;
     }
 }
 
@@ -218,13 +230,33 @@ void TimerApp::startNextHourTimer()
     QDateTime now = QDateTime::currentDateTime();
     QTime nowTime = now.time();
 
-    // Calculate milliseconds until next full hour
-    int msecsToNextHour = (3600 - (nowTime.minute() * 60 + nowTime.second())) * 1000;
+    QTime targetTime;
 
-    hourlyTimer->start(msecsToNextHour);
+    if (customMinute >= 0) {
+        // Use custom minute
+        if (nowTime.minute() <= customMinute) {
+            // Next alert is at the current hour with custom minute
+            targetTime = QTime(nowTime.hour(), customMinute);
+        } else {
+            // Next alert is at the next hour with custom minute
+            targetTime = QTime(nowTime.hour() + 1, customMinute);
+        }
+    } else {
+        // Default behavior: next full hour
+        targetTime = nowTime.addSecs(3600 - (nowTime.minute() * 60 + nowTime.second()));
+    }
+
+    // Calculate milliseconds until the target time
+    QDateTime targetDateTime = QDateTime(now.date(), targetTime);
+    if (targetDateTime <= now) {
+        targetDateTime = targetDateTime.addDays(1);
+    }
+
+    qint64 msecsToTarget = now.msecsTo(targetDateTime);
+    hourlyTimer->start(msecsToTarget);
 
     // Update next alert time
-    nextAlertTime = nowTime.addSecs(3600 - (nowTime.minute() * 60 + nowTime.second()));
+    nextAlertTime = targetTime;
 
     // Update UI
     updateNextAlertLabel();
@@ -248,6 +280,9 @@ void TimerApp::showReminder()
                               "Time: " + QDateTime::currentDateTime().toString("hh:mm"),
                               QSystemTrayIcon::Warning, 5000);
     }
+
+    // Start timer for next alert (using the same custom minute if set)
+    startNextHourTimer();
 }
 
 void TimerApp::snoozeReminder()
@@ -280,7 +315,7 @@ void TimerApp::dismissReminder()
         reminderDialog->hide();
     }
 
-    // Restart the hourly timer
+    // Start timer for next alert (using the same custom minute if set)
     startNextHourTimer();
 
     // Show notification
@@ -320,4 +355,55 @@ void TimerApp::closeEvent(QCloseEvent *event)
 {
     hide();
     event->ignore();
+}
+
+void TimerApp::showTimeSetDialog()
+{
+    if (!timeSetDialog) {
+        timeSetDialog = new TimeSetDialog(nextAlertTime, this);
+    } else {
+        timeSetDialog->setTime(nextAlertTime);
+    }
+
+    if (timeSetDialog->exec() == QDialog::Accepted) {
+        // User clicked OK, update the custom minute
+        QTime selectedTime = timeSetDialog->selectedTime();
+        customMinute = selectedTime.minute();  // Store only the minute
+
+        // Calculate the next alert time with the custom minute
+        QDateTime now = QDateTime::currentDateTime();
+        QTime nowTime = now.time();
+
+        QTime targetTime;
+        if (nowTime.minute() <= customMinute) {
+            // Next alert is at the current hour with custom minute
+            targetTime = QTime(nowTime.hour(), customMinute);
+        } else {
+            // Next alert is at the next hour with custom minute
+            targetTime = QTime(nowTime.hour() + 1, customMinute);
+        }
+
+        // Calculate milliseconds until the target time
+        QDateTime targetDateTime = QDateTime(now.date(), targetTime);
+        if (targetDateTime <= now) {
+            targetDateTime = targetDateTime.addDays(1);
+        }
+
+        qint64 msecsToTarget = now.msecsTo(targetDateTime);
+        hourlyTimer->stop();
+        hourlyTimer->start(msecsToTarget);
+
+        // Update next alert time
+        nextAlertTime = targetTime;
+
+        // Update the UI
+        updateNextAlertLabel();
+
+        // Show notification
+        if (trayIcon && trayIcon->isVisible()) {
+            trayIcon->showMessage("Alert Time Updated",
+                                  "Next alert at " + nextAlertTime.toString("hh:mm"),
+                                  QSystemTrayIcon::Information, 3000);
+        }
+    }
 }
