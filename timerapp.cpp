@@ -41,19 +41,21 @@ TimerApp::TimerApp(QWidget *parent)
     mainLayout->setContentsMargins(20, 20, 20, 20);
     mainLayout->setSpacing(15);
 
-    // Create horizontal layout for status and edit button
-    QHBoxLayout *statusLayout = new QHBoxLayout();
+    // Create a container widget for status and edit button
+    QWidget *statusContainer = new QWidget(this);
+    QHBoxLayout *statusLayout = new QHBoxLayout(statusContainer);
+    statusLayout->setContentsMargins(0, 0, 0, 0);
     statusLayout->setSpacing(10);
 
     // Add status label with larger, bold font
     statusLabel = new QLabel("Timer is running", this);
     statusLabel->setAlignment(Qt::AlignCenter);
-    statusLabel->setStyleSheet("font-size: 20px; font-weight: bold;");
+    statusLabel->setStyleSheet("font-size: 24px; font-weight: bold;");
     statusLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
     // Add edit status button
     editStatusButton = new QPushButton("Edit", this);
-    editStatusButton->setStyleSheet("font-size: 14px; font-weight: bold;");
+    editStatusButton->setStyleSheet("font-size: 12px;");
     editStatusButton->setMinimumHeight(30);
     editStatusButton->setMaximumWidth(60);
     editStatusButton->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
@@ -63,14 +65,21 @@ TimerApp::TimerApp(QWidget *parent)
     statusLayout->addWidget(statusLabel);
     statusLayout->addWidget(editStatusButton);
 
+    // Create a horizontal layout to center the status container
+    QHBoxLayout *centerLayout = new QHBoxLayout();
+    centerLayout->setContentsMargins(0, 0, 0, 0);
+    centerLayout->addStretch(); // Add stretch to push container to center
+    centerLayout->addWidget(statusContainer);
+    centerLayout->addStretch(); // Add stretch to push container to center
+
     nextAlertLabel = new QLabel("Next alert: Calculating...", this);
     nextAlertLabel->setAlignment(Qt::AlignCenter);
-    nextAlertLabel->setStyleSheet("font-size: 18px; font-weight: bold;");
+    nextAlertLabel->setStyleSheet("font-size: 32px; font-weight: bold;");
 
     // Add countdown label with larger, bold font
     countdownLabel = new QLabel("Time remaining: --:--:--", this);
     countdownLabel->setAlignment(Qt::AlignCenter);
-    countdownLabel->setStyleSheet("font-size: 24px; font-weight: bold;");
+    countdownLabel->setStyleSheet("font-size: 20px; font-weight: bold;");
 
     // Create first horizontal layout for setting buttons
     QHBoxLayout *settingButtonsLayout = new QHBoxLayout();
@@ -136,7 +145,7 @@ TimerApp::TimerApp(QWidget *parent)
     actionButtonsLayout->setStretchFactor(quitButton, 1);
 
     // Add all widgets to main layout
-    mainLayout->addLayout(statusLayout);
+    mainLayout->addLayout(centerLayout);
     mainLayout->addWidget(nextAlertLabel);
     mainLayout->addWidget(countdownLabel);
     mainLayout->addLayout(settingButtonsLayout);
@@ -179,6 +188,7 @@ TimerApp::TimerApp(QWidget *parent)
     // Set maximum size to prevent expanding unnecessarily
     setMaximumSize(450, size().height());
 }
+
 
 TimerApp::~TimerApp()
 {
