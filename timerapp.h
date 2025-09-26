@@ -5,7 +5,6 @@
 #include <QSystemTrayIcon>
 #include <QTimer>
 #include <QTime>
-#include <QLineEdit>
 #include <QLabel>
 #include <QPushButton>
 
@@ -31,7 +30,7 @@ private slots:
     void updateCountdown();
     void showTimeSetDialog();
     void showIntervalSetDialog();
-    void onStatusTextChanged();  // New slot for status text changes
+    void editStatusText();  // New slot for editing status text
 
 private:
     void setupTrayIcon();
@@ -53,13 +52,14 @@ private:
     int customInterval;
 
     // UI elements
-    QLineEdit *statusEdit;  // Changed from QLabel to QLineEdit
+    QLabel *statusLabel;  // Changed back to QLabel
     QLabel *nextAlertLabel;
     QLabel *countdownLabel;
     QPushButton *setTimeButton;
     QPushButton *setIntervalButton;
     QPushButton *minimizeButton;
     QPushButton *quitButton;
+    QPushButton *editStatusButton;  // New button for editing status
 };
 
 #endif // TIMERAPP_H

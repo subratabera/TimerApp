@@ -12,7 +12,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QHBoxLayout>
-#include <QLineEdit>
+#include <QInputDialog>
 #include <QSizePolicy>
 #include <QStyle>
 
@@ -41,11 +41,27 @@ TimerApp::TimerApp(QWidget *parent)
     mainLayout->setContentsMargins(20, 20, 20, 20);
     mainLayout->setSpacing(15);
 
-    // Add editable status field with larger, bold font
-    statusEdit = new QLineEdit("Timer is running", this);
-    statusEdit->setAlignment(Qt::AlignCenter);
-    statusEdit->setStyleSheet("font-size: 20px; font-weight: bold;");
-    connect(statusEdit, &QLineEdit::textChanged, this, &TimerApp::onStatusTextChanged);
+    // Create horizontal layout for status and edit button
+    QHBoxLayout *statusLayout = new QHBoxLayout();
+    statusLayout->setSpacing(10);
+
+    // Add status label with larger, bold font
+    statusLabel = new QLabel("Timer is running", this);
+    statusLabel->setAlignment(Qt::AlignCenter);
+    statusLabel->setStyleSheet("font-size: 20px; font-weight: bold;");
+    statusLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+
+    // Add edit status button
+    editStatusButton = new QPushButton("Edit", this);
+    editStatusButton->setStyleSheet("font-size: 14px; font-weight: bold;");
+    editStatusButton->setMinimumHeight(30);
+    editStatusButton->setMaximumWidth(60);
+    editStatusButton->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+    connect(editStatusButton, &QPushButton::clicked, this, &TimerApp::editStatusText);
+
+    // Add status label and edit button to status layout
+    statusLayout->addWidget(statusLabel);
+    statusLayout->addWidget(editStatusButton);
 
     nextAlertLabel = new QLabel("Next alert: Calculating...", this);
     nextAlertLabel->setAlignment(Qt::AlignCenter);
@@ -120,7 +136,7 @@ TimerApp::TimerApp(QWidget *parent)
     actionButtonsLayout->setStretchFactor(quitButton, 1);
 
     // Add all widgets to main layout
-    mainLayout->addWidget(statusEdit);
+    mainLayout->addLayout(statusLayout);
     mainLayout->addWidget(nextAlertLabel);
     mainLayout->addWidget(countdownLabel);
     mainLayout->addLayout(settingButtonsLayout);
@@ -186,7 +202,7 @@ void TimerApp::setupTrayIcon()
 {
     // Check if system tray is available
     if (!QSystemTrayIcon::isSystemTrayAvailable()) {
-        statusEdit->setText("Timer is running (System tray not available)");
+        statusLabel->setText("Timer is running (System tray not available)");
         return;
     }
 
@@ -212,7 +228,7 @@ void TimerApp::setupTrayIcon()
 
     // Verify the icon is visible
     if (!trayIcon->isVisible()) {
-        statusEdit->setText("Timer is running (Failed to show tray icon)");
+        statusLabel->setText("Timer is running (Failed to show tray icon)");
     }
 
     connect(trayIcon, &QSystemTrayIcon::activated,
@@ -334,7 +350,7 @@ void TimerApp::showReminder()
     reminderDialog->activateWindow();
 
     // Show system notification with custom status text if available
-    QString message = statusEdit->text();
+    QString message = statusLabel->text();
     if (message.isEmpty()) {
         message = "Timer Alert";
     }
@@ -367,7 +383,7 @@ void TimerApp::snoozeReminder()
 
     // Show notification
     if (trayIcon && trayIcon->isVisible()) {
-        QString message = statusEdit->text();
+        QString message = statusLabel->text();
         if (message.isEmpty()) {
             message = "Reminder Snoozed";
         }
@@ -389,7 +405,7 @@ void TimerApp::dismissReminder()
 
     // Show notification
     if (trayIcon && trayIcon->isVisible()) {
-        QString message = statusEdit->text();
+        QString message = statusLabel->text();
         if (message.isEmpty()) {
             message = "Reminder Dismissed";
         }
@@ -431,10 +447,18 @@ void TimerApp::closeEvent(QCloseEvent *event)
     event->ignore();
 }
 
-void TimerApp::onStatusTextChanged()
+void TimerApp::editStatusText()
 {
-    // This slot is called when the user edits the status text
-    // We don't need to do anything special here, but we could add validation if needed
+    bool ok;
+    QString currentText = statusLabel->text();
+    QString newText = QInputDialog::getText(this, "Edit Status",
+                                            "Enter status text:",
+                                            QLineEdit::Normal,
+                                            currentText, &ok);
+
+    if (ok && !newText.isEmpty()) {
+        statusLabel->setText(newText);
+    }
 }
 
 void TimerApp::showTimeSetDialog()
@@ -481,7 +505,7 @@ void TimerApp::showTimeSetDialog()
 
         // Show notification
         if (trayIcon && trayIcon->isVisible()) {
-            QString message = statusEdit->text();
+            QString message = statusLabel->text();
             if (message.isEmpty()) {
                 message = "Alert Time Updated";
             }
@@ -513,9 +537,9 @@ void TimerApp::showIntervalSetDialog()
 
         // Update status label to show the new interval
         if (customInterval == 60) {
-            statusEdit->setText("Timer is running (1 hour interval)");
+            statusLabel->setText("Timer is running (1 hour interval)");
         } else {
-            statusEdit->setText(QString("Timer is running (%1 minute interval)").arg(customInterval));
+            statusLabel->setText(QString("Timer is running (%1 minute interval)").arg(customInterval));
         }
 
         // Show notification
@@ -535,7 +559,7 @@ void TimerApp::showIntervalSetDialog()
                 }
             }
 
-            QString message = statusEdit->text();
+            QString message = statusLabel->text();
             if (message.isEmpty()) {
                 message = "Interval Updated";
             }
