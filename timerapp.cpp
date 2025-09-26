@@ -9,10 +9,6 @@
 #include <QWidget>
 #include <QLabel>
 #include <QPushButton>
-#include <QDebug>
-#include <QDir>
-#include <QStandardPaths>
-#include <QSystemTrayIcon>
 #include <QStyle>
 
 TimerApp::TimerApp(QWidget *parent)
@@ -25,60 +21,18 @@ TimerApp::TimerApp(QWidget *parent)
 {
     setWindowTitle("Hourly Timer");
 
-    // Load the icon for both window and system tray
-    QIcon appIcon;
-
-    // Try to load the icon from multiple sources
-    // First try from resources
-    appIcon = QIcon(":/icons/timer_icon.png");
-    if (!appIcon.isNull()) {
-        qDebug() << "Icon loaded from resources";
-    } else {
-        qWarning() << "Failed to load icon from resources";
-
-        // Try from the application directory
-        QString appPath = QCoreApplication::applicationDirPath();
-        appIcon = QIcon(appPath + "/icons/timer_icon.png");
-        if (!appIcon.isNull()) {
-            qDebug() << "Icon loaded from application directory";
-        } else {
-            qWarning() << "Failed to load icon from application directory";
-
-            // Try from the current working directory
-            appIcon = QIcon("icons/timer_icon.png");
-            if (!appIcon.isNull()) {
-                qDebug() << "Icon loaded from current directory";
-            } else {
-                qWarning() << "Failed to load icon from current directory";
-
-                // Try from the user's home directory
-                QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
-                appIcon = QIcon(homePath + "/timer_icon.png");
-                if (!appIcon.isNull()) {
-                    qDebug() << "Icon loaded from home directory";
-                } else {
-                    qWarning() << "Failed to load icon from home directory";
-
-                    // Use standard icon as last resort
-                    appIcon = style()->standardIcon(QStyle::SP_ComputerIcon);
-                    qWarning() << "Using standard icon";
-                }
-            }
-        }
-    }
-
-    // Set the window icon
-    setWindowIcon(appIcon);
+    // Set a standard system icon for the window
+    setWindowIcon(style()->standardIcon(QStyle::SP_ComputerIcon));
 
     // Create central widget and layout
     QWidget *centralWidget = new QWidget(this);
     QVBoxLayout *layout = new QVBoxLayout(centralWidget);
 
     // Set layout margins and spacing
-    layout->setContentsMargins(20, 20, 20, 20);  // Left, Top, Right, Bottom
-    layout->setSpacing(15);  // Space between widgets
+    layout->setContentsMargins(20, 20, 20, 20);
+    layout->setSpacing(15);
 
-    // Add UI elements with larger fonts
+    // Add UI elements with larger, bold fonts
     statusLabel = new QLabel("Timer is running", this);
     statusLabel->setAlignment(Qt::AlignCenter);
     statusLabel->setStyleSheet("font-size: 20px; font-weight: bold;");
@@ -87,15 +41,15 @@ TimerApp::TimerApp(QWidget *parent)
     nextAlertLabel->setAlignment(Qt::AlignCenter);
     nextAlertLabel->setStyleSheet("font-size: 18px; font-weight: bold;");
 
-    // Add countdown label with larger font
+    // Add countdown label with larger, bold font
     countdownLabel = new QLabel("Time remaining: --:--:--", this);
     countdownLabel->setAlignment(Qt::AlignCenter);
-    countdownLabel->setStyleSheet("font-size: 20px; font-weight: bold;");
+    countdownLabel->setStyleSheet("font-size: 24px; font-weight: bold;");
 
-    // Add minimize button with larger font
+    // Add minimize button with larger, bold font
     QPushButton *minimizeButton = new QPushButton("Minimize to System Tray", this);
-    minimizeButton->setStyleSheet("font-size: 16px; padding: 10px;");
-    minimizeButton->setMinimumHeight(50);  // Make button taller
+    minimizeButton->setStyleSheet("font-size: 16px; font-weight: bold;");
+    minimizeButton->setMinimumHeight(50);
     connect(minimizeButton, &QPushButton::clicked, this, [this]() {
         hide();
         if (trayIcon && trayIcon->isVisible()) {
@@ -116,7 +70,7 @@ TimerApp::TimerApp(QWidget *parent)
 
     setCentralWidget(centralWidget);
 
-    // Set up system tray with the same icon
+    // Set up system tray with a standard icon
     setupTrayIcon();
     setupTimers();
 
@@ -164,7 +118,6 @@ void TimerApp::setupTrayIcon()
         if (statusLabel) {
             statusLabel->setText("Timer is running (System tray not available)");
         }
-        qWarning() << "System tray not available on this system";
         return;
     }
 
@@ -180,66 +133,19 @@ void TimerApp::setupTrayIcon()
     trayMenu->addAction(showAction);
     trayMenu->addAction(quitAction);
 
-    // Set up tray icon
+    // Set up tray icon with a standard system icon
     trayIcon->setContextMenu(trayMenu);
-
-    // Try to load the icon from multiple sources
-    QIcon icon;
-
-    // First try from resources
-    icon = QIcon(":/icons/timer_icon.png");
-    if (!icon.isNull()) {
-        qDebug() << "Icon loaded from resources";
-    } else {
-        qWarning() << "Failed to load icon from resources";
-
-        // Try from the application directory
-        QString appPath = QCoreApplication::applicationDirPath();
-        icon = QIcon(appPath + "/icons/timer_icon.png");
-        if (!icon.isNull()) {
-            qDebug() << "Icon loaded from application directory";
-        } else {
-            qWarning() << "Failed to load icon from application directory";
-
-            // Try from the current working directory
-            icon = QIcon("icons/timer_icon.png");
-            if (!icon.isNull()) {
-                qDebug() << "Icon loaded from current directory";
-            } else {
-                qWarning() << "Failed to load icon from current directory";
-
-                // Try from the user's home directory
-                QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
-                icon = QIcon(homePath + "/timer_icon.png");
-                if (!icon.isNull()) {
-                    qDebug() << "Icon loaded from home directory";
-                } else {
-                    qWarning() << "Failed to load icon from home directory";
-
-                    // Use standard icon as last resort
-                    icon = style()->standardIcon(QStyle::SP_ComputerIcon);
-                    qWarning() << "Using standard icon";
-                }
-            }
-        }
-    }
-
-    trayIcon->setIcon(icon);
+    trayIcon->setIcon(style()->standardIcon(QStyle::SP_ComputerIcon));
     trayIcon->setToolTip("Hourly Timer");
 
     // Show the tray icon
-    if (!trayIcon->isVisible()) {
-        trayIcon->show();
-    }
+    trayIcon->show();
 
     // Verify the icon is visible
     if (!trayIcon->isVisible()) {
-        qWarning() << "Failed to show system tray icon";
         if (statusLabel) {
             statusLabel->setText("Timer is running (Failed to show tray icon)");
         }
-    } else {
-        qDebug() << "System tray icon is visible";
     }
 
     connect(trayIcon, &QSystemTrayIcon::activated,
@@ -263,14 +169,14 @@ void TimerApp::setupTimers()
     connect(snoozeTimer, &QTimer::timeout, this, &TimerApp::showReminder);
 
     // Setup countdown timer
-    countdownTimer->setInterval(1000);  // Update every second
+    countdownTimer->setInterval(1000);
     connect(countdownTimer, &QTimer::timeout, this, &TimerApp::updateCountdown);
 }
 
 void TimerApp::startCountdown()
 {
     countdownTimer->start();
-    updateCountdown();  // Initial update
+    updateCountdown();
 }
 
 void TimerApp::updateCountdown()
@@ -351,11 +257,11 @@ void TimerApp::snoozeReminder()
     }
 
     // Set snooze timer for 5 minutes
-    snoozeTimer->start(5 * 60 * 1000); // 5 minutes in milliseconds
+    snoozeTimer->start(5 * 60 * 1000);
 
     // Update next alert time for snooze
     QDateTime now = QDateTime::currentDateTime();
-    nextAlertTime = now.time().addSecs(5 * 60);  // 5 minutes from now
+    nextAlertTime = now.time().addSecs(5 * 60);
 
     // Update UI
     updateNextAlertLabel();

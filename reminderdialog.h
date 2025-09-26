@@ -14,7 +14,7 @@ public:
     explicit ReminderDialog(QWidget *parent = nullptr);
     ~ReminderDialog();
 
-    void setMessage(const QString &message);  // New method to update message
+    void setMessage(const QString &message);
 
 signals:
     void snoozeClicked();

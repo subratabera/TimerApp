@@ -3,7 +3,6 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
-#include <QTime>
 
 ReminderDialog::ReminderDialog(QWidget *parent)
     : QDialog(parent)
@@ -25,11 +24,11 @@ ReminderDialog::ReminderDialog(QWidget *parent)
     buttonLayout->setSpacing(15);
 
     snoozeButton = new QPushButton("Snooze (5 min)", this);
-    snoozeButton->setStyleSheet("font-size: 16px; padding: 10px;");
+    snoozeButton->setStyleSheet("font-size: 16px; font-weight: bold;");
     snoozeButton->setMinimumHeight(50);
 
     dismissButton = new QPushButton("Dismiss", this);
-    dismissButton->setStyleSheet("font-size: 16px; padding: 10px;");
+    dismissButton->setStyleSheet("font-size: 16px; font-weight: bold;");
     dismissButton->setMinimumHeight(50);
 
     buttonLayout->addWidget(snoozeButton);

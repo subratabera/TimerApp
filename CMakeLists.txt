@@ -12,7 +12,7 @@ qt_add_executable(TimerApp
     timerapp.h
     reminderdialog.h
     reminderdialog.cpp
-    resources.qrc
+
 )
 
 target_link_libraries(TimerApp
