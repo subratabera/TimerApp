@@ -8,6 +8,56 @@
 #include <QVBoxLayout>
 #include <QWidget>
 #include <QLabel>
+#include <QStyle>
+#include <QPushButton>
+
+// TimerApp::TimerApp(QWidget *parent)
+//     : QMainWindow(parent)
+//     , trayIcon(new QSystemTrayIcon(this))
+//     , hourlyTimer(new QTimer(this))
+//     , snoozeTimer(new QTimer(this))
+//     , reminderDialog(nullptr)
+// {
+//     setWindowTitle("Hourly Timer");
+//     resize(300, 200);
+
+//     // Create central widget and layout
+//     QWidget *centralWidget = new QWidget(this);
+//     QVBoxLayout *layout = new QVBoxLayout(centralWidget);
+
+//     // Add UI elements
+//     statusLabel = new QLabel("Timer is running", this);
+//     statusLabel->setAlignment(Qt::AlignCenter);
+//     statusLabel->setStyleSheet("font-size: 16px; font-weight: bold; margin: 10px;");
+
+//     nextAlertLabel = new QLabel("Next alert: Calculating...", this);
+//     nextAlertLabel->setAlignment(Qt::AlignCenter);
+
+//     layout->addWidget(statusLabel);
+//     layout->addWidget(nextAlertLabel);
+//     layout->addStretch();
+
+//     setCentralWidget(centralWidget);
+
+//     setupTrayIcon();
+//     setupTimers();
+
+//     // Set initial alert time to next full hour
+//     QDateTime now = QDateTime::currentDateTime();
+//     QTime nextHour = now.time().addSecs(3600 - (now.time().minute() * 60 + now.time().second()));
+//     nextAlertTime = nextHour;
+
+//     // Update the UI
+//     nextAlertLabel->setText("Next alert: " + nextAlertTime.toString("hh:mm"));
+
+//     // Start the timer for the first alert
+//     startNextHourTimer();
+
+//     // Show initial message
+//     trayIcon->showMessage("Timer Started",
+//                           "Next alert at " + nextAlertTime.toString("hh:mm"),
+//                           QSystemTrayIcon::Information, 3000);
+// }
 
 TimerApp::TimerApp(QWidget *parent)
     : QMainWindow(parent)
@@ -31,8 +81,20 @@ TimerApp::TimerApp(QWidget *parent)
     nextAlertLabel = new QLabel("Next alert: Calculating...", this);
     nextAlertLabel->setAlignment(Qt::AlignCenter);
 
+    // Add minimize button
+    QPushButton *minimizeButton = new QPushButton("Minimize to System Tray", this);
+    connect(minimizeButton, &QPushButton::clicked, this, [this]() {
+        hide();
+        if (trayIcon && trayIcon->isVisible()) {
+            trayIcon->showMessage("Timer Running",
+                                  "Application minimized to system tray",
+                                  QSystemTrayIcon::Information, 2000);
+        }
+    });
+
     layout->addWidget(statusLabel);
     layout->addWidget(nextAlertLabel);
+    layout->addWidget(minimizeButton);
     layout->addStretch();
 
     setCentralWidget(centralWidget);
@@ -52,9 +114,11 @@ TimerApp::TimerApp(QWidget *parent)
     startNextHourTimer();
 
     // Show initial message
-    trayIcon->showMessage("Timer Started",
-                          "Next alert at " + nextAlertTime.toString("hh:mm"),
-                          QSystemTrayIcon::Information, 3000);
+    if (trayIcon && trayIcon->isVisible()) {
+        trayIcon->showMessage("Timer Started",
+                              "Next alert at " + nextAlertTime.toString("hh:mm"),
+                              QSystemTrayIcon::Information, 3000);
+    }
 }
 
 TimerApp::~TimerApp()
@@ -65,24 +129,126 @@ TimerApp::~TimerApp()
     }
 }
 
+void TimerApp::showMainWindow()
+{
+    show();
+    raise();
+    activateWindow();
+}
+
+// void TimerApp::setupTrayIcon()
+// {
+//     // Check if system tray is available
+//     if (!QSystemTrayIcon::isSystemTrayAvailable()) {
+//         QMessageBox::critical(this, "Error",
+//                               "System tray is not available on this system.");
+//         return;
+//     }
+
+//     // Create tray icon menu
+//     QMenu *trayMenu = new QMenu(this);
+
+//     QAction *showAction = new QAction("Show Window", this);
+//     connect(showAction, &QAction::triggered, this, &TimerApp::showMainWindow);
+
+//     QAction *quitAction = new QAction("Quit", this);
+//     connect(quitAction, &QAction::triggered, this, &TimerApp::quitApp);
+
+//     trayMenu->addAction(showAction);
+//     trayMenu->addAction(quitAction);
+
+//     // Set up tray icon
+//     trayIcon->setContextMenu(trayMenu);
+
+//     // Try to load the icon, use a default if it fails
+//     QIcon icon(":/icons/timer_icon.png");
+//     if (icon.isNull()) {
+//         // Fallback to a standard icon
+//         icon = style()->standardIcon(QStyle::SP_ComputerIcon);
+//         qDebug() << "Could not load custom icon, using standard icon";
+//     }
+
+//     trayIcon->setIcon(icon);
+//     trayIcon->setToolTip("Hourly Timer");
+
+//     // Show the tray icon
+//     trayIcon->show();
+
+//     connect(trayIcon, &QSystemTrayIcon::activated,
+//             this, &TimerApp::iconActivated);
+
+//     // Connect a signal to handle tray icon changes
+//     connect(trayIcon, &QSystemTrayIcon::messageClicked,
+//             this, [this]() {
+//                 show();
+//                 raise();
+//                 activateWindow();
+//             });
+// }
+
 void TimerApp::setupTrayIcon()
 {
+    // Check if system tray is available
+    if (!QSystemTrayIcon::isSystemTrayAvailable()) {
+        // Add a status message to the main window instead
+        if (statusLabel) {
+            statusLabel->setText("Timer is running (System tray not available)");
+        }
+        qWarning() << "System tray not available on this system";
+        return;
+    }
+
     // Create tray icon menu
     QMenu *trayMenu = new QMenu(this);
+
+    QAction *showAction = new QAction("Show Window", this);
+    connect(showAction, &QAction::triggered, this, &TimerApp::showMainWindow);
 
     QAction *quitAction = new QAction("Quit", this);
     connect(quitAction, &QAction::triggered, this, &TimerApp::quitApp);
 
+    trayMenu->addAction(showAction);
     trayMenu->addAction(quitAction);
 
     // Set up tray icon
     trayIcon->setContextMenu(trayMenu);
-    trayIcon->setIcon(QIcon(":/icons/timer_icon.png"));
+
+    // Try to load the icon, use a default if it fails
+    QIcon icon(":/icons/timer_icon.png");
+    if (icon.isNull()) {
+        // Fallback to a standard icon
+        icon = style()->standardIcon(QStyle::SP_ComputerIcon);
+        qDebug() << "Could not load custom icon, using standard icon";
+    }
+
+    trayIcon->setIcon(icon);
     trayIcon->setToolTip("Hourly Timer");
-    trayIcon->show();
+
+    // Show the tray icon
+    if (!trayIcon->isVisible()) {
+        trayIcon->show();
+    }
+
+    // Verify the icon is visible
+    if (!trayIcon->isVisible()) {
+        qWarning() << "Failed to show system tray icon";
+        if (statusLabel) {
+            statusLabel->setText("Timer is running (Failed to show tray icon)");
+        }
+    } else {
+        qDebug() << "System tray icon is visible";
+    }
 
     connect(trayIcon, &QSystemTrayIcon::activated,
             this, &TimerApp::iconActivated);
+
+    // Connect a signal to handle tray icon changes
+    connect(trayIcon, &QSystemTrayIcon::messageClicked,
+            this, [this]() {
+                show();
+                raise();
+                activateWindow();
+            });
 }
 
 void TimerApp::setupTimers()

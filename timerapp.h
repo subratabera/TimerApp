@@ -23,6 +23,7 @@ private slots:
     void dismissReminder();
     void iconActivated(QSystemTrayIcon::ActivationReason reason);
     void quitApp();
+    void showMainWindow();
 
 private:
     void setupTrayIcon();
