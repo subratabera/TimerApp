@@ -47,16 +47,16 @@ TimerApp::TimerApp(QWidget *parent)
 
     nextAlertLabel = new QLabel("Next alert: Calculating...", this);
     nextAlertLabel->setAlignment(Qt::AlignCenter);
-    nextAlertLabel->setStyleSheet("font-size: 18px; font-weight: bold;");
+    nextAlertLabel->setStyleSheet("font-size: 32px; font-weight: bold;");
 
     // Add countdown label with larger, bold font
     countdownLabel = new QLabel("Time remaining: --:--:--", this);
     countdownLabel->setAlignment(Qt::AlignCenter);
-    countdownLabel->setStyleSheet("font-size: 24px; font-weight: bold;");
+    countdownLabel->setStyleSheet("font-size: 20px; font-weight: bold;");
 
-    // Create horizontal layout for buttons
-    QHBoxLayout *buttonLayout = new QHBoxLayout();
-    buttonLayout->setSpacing(10);
+    // Create first horizontal layout for setting buttons
+    QHBoxLayout *settingButtonsLayout = new QHBoxLayout();
+    settingButtonsLayout->setSpacing(10);
 
     // Add set time button
     setTimeButton = new QPushButton("Set Alert Time", this);
@@ -73,6 +73,18 @@ TimerApp::TimerApp(QWidget *parent)
     setIntervalButton->setMinimumWidth(120);
     setIntervalButton->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     connect(setIntervalButton, &QPushButton::clicked, this, &TimerApp::showIntervalSetDialog);
+
+    // Add setting buttons to first layout
+    settingButtonsLayout->addWidget(setTimeButton);
+    settingButtonsLayout->addWidget(setIntervalButton);
+
+    // Set stretch factors to make buttons equal width
+    settingButtonsLayout->setStretchFactor(setTimeButton, 1);
+    settingButtonsLayout->setStretchFactor(setIntervalButton, 1);
+
+    // Create second horizontal layout for action buttons
+    QHBoxLayout *actionButtonsLayout = new QHBoxLayout();
+    actionButtonsLayout->setSpacing(10);
 
     // Add minimize button
     minimizeButton = new QPushButton("Minimize", this);
@@ -97,23 +109,20 @@ TimerApp::TimerApp(QWidget *parent)
     quitButton->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     connect(quitButton, &QPushButton::clicked, this, &TimerApp::quitApp);
 
-    // Add all buttons to horizontal layout
-    buttonLayout->addWidget(setTimeButton);
-    buttonLayout->addWidget(setIntervalButton);
-    buttonLayout->addWidget(minimizeButton);
-    buttonLayout->addWidget(quitButton);
+    // Add action buttons to second layout
+    actionButtonsLayout->addWidget(minimizeButton);
+    actionButtonsLayout->addWidget(quitButton);
 
     // Set stretch factors to make buttons equal width
-    buttonLayout->setStretchFactor(setTimeButton, 1);
-    buttonLayout->setStretchFactor(setIntervalButton, 1);
-    buttonLayout->setStretchFactor(minimizeButton, 1);
-    buttonLayout->setStretchFactor(quitButton, 1);
+    actionButtonsLayout->setStretchFactor(minimizeButton, 1);
+    actionButtonsLayout->setStretchFactor(quitButton, 1);
 
     // Add all widgets to main layout
     mainLayout->addWidget(statusLabel);
     mainLayout->addWidget(nextAlertLabel);
     mainLayout->addWidget(countdownLabel);
-    mainLayout->addLayout(buttonLayout);
+    mainLayout->addLayout(settingButtonsLayout);
+    mainLayout->addLayout(actionButtonsLayout);
 
     // Add stretch to push everything up
     mainLayout->addStretch();
@@ -144,13 +153,13 @@ TimerApp::TimerApp(QWidget *parent)
     adjustSize();
 
     // Set minimum width to accommodate all buttons
-    setMinimumWidth(550);  // Increased width for four buttons
+    setMinimumWidth(450);
 
     // Set minimum height to prevent shrinking too much
     setMinimumHeight(size().height());
 
     // Set maximum size to prevent expanding unnecessarily
-    setMaximumSize(550, size().height());
+    setMaximumSize(450, size().height());
 }
 
 TimerApp::~TimerApp()
@@ -455,7 +464,7 @@ void TimerApp::showTimeSetDialog()
         if (trayIcon && trayIcon->isVisible()) {
             trayIcon->showMessage("Alert Time Updated",
                                   "Next alert at " + nextAlertTime.toString("hh:mm"),
-                                  QSystemTrayIcon::Information, 1000);
+                                  QSystemTrayIcon::Information, 3000);
         }
     }
 }
