@@ -20,31 +20,82 @@ TimerApp::TimerApp(QWidget *parent)
     , trayIcon(new QSystemTrayIcon(this))
     , hourlyTimer(new QTimer(this))
     , snoozeTimer(new QTimer(this))
-    , countdownTimer(new QTimer(this))  // Initialize countdown timer
+    , countdownTimer(new QTimer(this))
     , reminderDialog(nullptr)
 {
     setWindowTitle("Hourly Timer");
-    resize(300, 250);  // Increased height for countdown
+
+    // Load the icon for both window and system tray
+    QIcon appIcon;
+
+    // Try to load the icon from multiple sources
+    // First try from resources
+    appIcon = QIcon(":/icons/timer_icon.png");
+    if (!appIcon.isNull()) {
+        qDebug() << "Icon loaded from resources";
+    } else {
+        qWarning() << "Failed to load icon from resources";
+
+        // Try from the application directory
+        QString appPath = QCoreApplication::applicationDirPath();
+        appIcon = QIcon(appPath + "/icons/timer_icon.png");
+        if (!appIcon.isNull()) {
+            qDebug() << "Icon loaded from application directory";
+        } else {
+            qWarning() << "Failed to load icon from application directory";
+
+            // Try from the current working directory
+            appIcon = QIcon("icons/timer_icon.png");
+            if (!appIcon.isNull()) {
+                qDebug() << "Icon loaded from current directory";
+            } else {
+                qWarning() << "Failed to load icon from current directory";
+
+                // Try from the user's home directory
+                QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+                appIcon = QIcon(homePath + "/timer_icon.png");
+                if (!appIcon.isNull()) {
+                    qDebug() << "Icon loaded from home directory";
+                } else {
+                    qWarning() << "Failed to load icon from home directory";
+
+                    // Use standard icon as last resort
+                    appIcon = style()->standardIcon(QStyle::SP_ComputerIcon);
+                    qWarning() << "Using standard icon";
+                }
+            }
+        }
+    }
+
+    // Set the window icon
+    setWindowIcon(appIcon);
 
     // Create central widget and layout
     QWidget *centralWidget = new QWidget(this);
     QVBoxLayout *layout = new QVBoxLayout(centralWidget);
 
-    // Add UI elements
+    // Set layout margins and spacing
+    layout->setContentsMargins(20, 20, 20, 20);  // Left, Top, Right, Bottom
+    layout->setSpacing(15);  // Space between widgets
+
+    // Add UI elements with larger fonts
     statusLabel = new QLabel("Timer is running", this);
     statusLabel->setAlignment(Qt::AlignCenter);
-    statusLabel->setStyleSheet("font-size: 16px; font-weight: bold; margin: 10px;");
+    statusLabel->setStyleSheet("font-size: 20px; font-weight: bold;");
 
     nextAlertLabel = new QLabel("Next alert: Calculating...", this);
     nextAlertLabel->setAlignment(Qt::AlignCenter);
+    nextAlertLabel->setStyleSheet("font-size: 18px; font-weight: bold;");
 
-    // Add countdown label
+    // Add countdown label with larger font
     countdownLabel = new QLabel("Time remaining: --:--:--", this);
     countdownLabel->setAlignment(Qt::AlignCenter);
-    countdownLabel->setStyleSheet("font-size: 14px; margin: 5px;");
+    countdownLabel->setStyleSheet("font-size: 20px; font-weight: bold;");
 
-    // Add minimize button
+    // Add minimize button with larger font
     QPushButton *minimizeButton = new QPushButton("Minimize to System Tray", this);
+    minimizeButton->setStyleSheet("font-size: 16px; padding: 10px;");
+    minimizeButton->setMinimumHeight(50);  // Make button taller
     connect(minimizeButton, &QPushButton::clicked, this, [this]() {
         hide();
         if (trayIcon && trayIcon->isVisible()) {
@@ -54,14 +105,18 @@ TimerApp::TimerApp(QWidget *parent)
         }
     });
 
+    // Add widgets to layout
     layout->addWidget(statusLabel);
     layout->addWidget(nextAlertLabel);
-    layout->addWidget(countdownLabel);  // Add countdown to layout
+    layout->addWidget(countdownLabel);
     layout->addWidget(minimizeButton);
+
+    // Add stretch to push everything up
     layout->addStretch();
 
     setCentralWidget(centralWidget);
 
+    // Set up system tray with the same icon
     setupTrayIcon();
     setupTimers();
 
@@ -83,6 +138,15 @@ TimerApp::TimerApp(QWidget *parent)
                               "Next alert at " + nextAlertTime.toString("hh:mm"),
                               QSystemTrayIcon::Information, 3000);
     }
+
+    // Adjust window size to fit contents
+    adjustSize();
+
+    // Set minimum size to prevent shrinking too much
+    setMinimumSize(size());
+
+    // Set maximum size to prevent expanding unnecessarily
+    setMaximumSize(size());
 }
 
 TimerApp::~TimerApp()

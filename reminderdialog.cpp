@@ -10,18 +10,27 @@ ReminderDialog::ReminderDialog(QWidget *parent)
 {
     setWindowTitle("Hourly Reminder");
     setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
-    resize(300, 150);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
 
+    // Set layout margins and spacing
+    mainLayout->setContentsMargins(20, 20, 20, 20);
+    mainLayout->setSpacing(15);
+
     messageLabel = new QLabel("It's time for your hourly break!", this);
     messageLabel->setAlignment(Qt::AlignCenter);
-    messageLabel->setStyleSheet("font-size: 16px; font-weight: bold; margin: 10px;");
+    messageLabel->setStyleSheet("font-size: 20px; font-weight: bold;");
 
     QHBoxLayout *buttonLayout = new QHBoxLayout();
+    buttonLayout->setSpacing(15);
 
     snoozeButton = new QPushButton("Snooze (5 min)", this);
+    snoozeButton->setStyleSheet("font-size: 16px; padding: 10px;");
+    snoozeButton->setMinimumHeight(50);
+
     dismissButton = new QPushButton("Dismiss", this);
+    dismissButton->setStyleSheet("font-size: 16px; padding: 10px;");
+    dismissButton->setMinimumHeight(50);
 
     buttonLayout->addWidget(snoozeButton);
     buttonLayout->addWidget(dismissButton);
@@ -31,6 +40,10 @@ ReminderDialog::ReminderDialog(QWidget *parent)
 
     connect(snoozeButton, &QPushButton::clicked, this, &ReminderDialog::snoozeClicked);
     connect(dismissButton, &QPushButton::clicked, this, &ReminderDialog::dismissClicked);
+
+    // Adjust size to fit contents
+    adjustSize();
+    setFixedSize(size());
 }
 
 ReminderDialog::~ReminderDialog()
