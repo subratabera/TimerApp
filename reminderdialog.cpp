@@ -5,7 +5,6 @@
 #include <QPushButton>
 #include <QTime>
 
-// Constructor implementation
 ReminderDialog::ReminderDialog(QWidget *parent)
     : QDialog(parent)
 {
@@ -36,4 +35,9 @@ ReminderDialog::ReminderDialog(QWidget *parent)
 
 ReminderDialog::~ReminderDialog()
 {
+}
+
+void ReminderDialog::setMessage(const QString &message)
+{
+    messageLabel->setText(message);
 }

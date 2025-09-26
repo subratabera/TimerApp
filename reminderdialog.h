@@ -11,9 +11,10 @@ class ReminderDialog : public QDialog
     Q_OBJECT
 
 public:
-    // Explicit constructor with parent parameter
     explicit ReminderDialog(QWidget *parent = nullptr);
     ~ReminderDialog();
+
+    void setMessage(const QString &message);  // New method to update message
 
 signals:
     void snoozeClicked();

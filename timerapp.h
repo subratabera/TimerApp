@@ -24,22 +24,27 @@ private slots:
     void iconActivated(QSystemTrayIcon::ActivationReason reason);
     void quitApp();
     void showMainWindow();
+    void updateCountdown();  // New slot for countdown timer
 
 private:
     void setupTrayIcon();
     void setupTimers();
     void startNextHourTimer();
-
-    // Add this declaration for closeEvent
+    void startCountdown();
+    void updateNextAlertLabel();
     void closeEvent(QCloseEvent *event) override;
 
     QSystemTrayIcon *trayIcon;
     QTimer *hourlyTimer;
     QTimer *snoozeTimer;
+    QTimer *countdownTimer;  // New timer for countdown
     ReminderDialog *reminderDialog;
     QTime nextAlertTime;
+
+    // UI elements
     QLabel *statusLabel;
     QLabel *nextAlertLabel;
+    QLabel *countdownLabel;  // New label for countdown
 };
 
 #endif // TIMERAPP_H
